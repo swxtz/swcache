@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 clearscreen = "3.0.0"
 owo-colors = "4.1.0"
+toml = "0.8.19"
