@@ -11,7 +11,7 @@ impl RuntimeState {
         return self.state;
     }
 
-    pub fn set_runtime_state(&mut self, new_state: bool) {
-        self.state = new_state
-    }
+    // pub fn set_runtime_state(&mut self, new_state: bool) {
+    //     self.state = new_state
+    // }
 }

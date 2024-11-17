@@ -8,7 +8,7 @@ mod runtime;
 mod utils;
 
 fn main() {
-    let mut runtime = RuntimeState::new();
+    let runtime = RuntimeState::new();
 
     let state = RuntimeState::state(&runtime);
 
@@ -23,4 +23,4 @@ fn startup() {
     beta::beta_warning();
 }
 
-fn verify_config() {}
+// fn verify_config() {}
