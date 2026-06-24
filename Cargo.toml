@@ -9,3 +9,4 @@ clearscreen = "3.0.0"
 owo-colors = "4.1.0"
 sysinfo = { version = "0.32.0", features = ["windows"] }
 toml = "0.8.19"
+serde = { version = "1.0.210", features = ["derive"] }
