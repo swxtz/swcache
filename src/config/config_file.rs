@@ -5,7 +5,8 @@ use std::path::Path;
 /// Represents the application configuration structure mapped from a TOML file.
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct AppConfig {
-    pub single_thread_mode: bool,
+    pub single_thread_mode: Option<bool>,
+    pub debug: Option<bool>,
 }
 
 /// Checks if a file exists at the given path.
@@ -74,13 +75,31 @@ mod tests {
         let test_file_path = "swconfig_test_success.toml";
 
         let mut file = File::create(test_file_path).expect("Failed to create test config file");
-        file.write_all(b"single_thread_mode = true\n").expect("Failed to write to test file");
+        file.write_all(b"single_thread_mode = true\ndebug = false\n").expect("Failed to write to test file");
 
         let result = load_config(test_file_path);
 
         assert!(result.is_ok());
         let config = result.unwrap();
-        assert_eq!(config.single_thread_mode, true);
+        assert_eq!(config.single_thread_mode, Some(true));
+        assert_eq!(config.debug, Some(false));
+
+        fs::remove_file(test_file_path).expect("Failed to remove test file");
+    }
+
+    #[test]
+    fn test_load_config_optional_fields_missing() {
+        let test_file_path = "swconfig_test_missing_fields.toml";
+
+        let mut file = File::create(test_file_path).expect("Failed to create test config file");
+        file.write_all(b"").expect("Failed to write to test file");
+
+        let result = load_config(test_file_path);
+
+        assert!(result.is_ok());
+        let config = result.unwrap();
+        assert_eq!(config.single_thread_mode, None);
+        assert_eq!(config.debug, None);
 
         fs::remove_file(test_file_path).expect("Failed to remove test file");
     }
@@ -101,7 +120,7 @@ mod tests {
         let test_file_path = "swconfig_test_invalid.toml";
 
         let mut file = File::create(test_file_path).expect("Failed to create test config file");
-        file.write_all(b"wrong_field = 123\n").expect("Failed to write to test file");
+        file.write_all(b"single_thread_mode = \"not_a_bool\"\n").expect("Failed to write to test file");
 
         let result = load_config(test_file_path);
 
