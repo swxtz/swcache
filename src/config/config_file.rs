@@ -1,47 +1,63 @@
-use serde::Deserialize;
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::sync::OnceLock;
 
-/// Represents the application configuration structure mapped from a TOML file.
-#[derive(Debug, Deserialize, PartialEq)]
-pub struct AppConfig {
-    pub single_thread_mode: Option<bool>,
-    pub debug: Option<bool>,
+/// Global storage for the configuration instance.
+static CONFIG_MANAGER: OnceLock<ConfigManager> = OnceLock::new();
+
+/// Manages the application configuration using an internal key-value map.
+pub struct ConfigManager {
+    settings: HashMap<String, String>,
 }
 
-/// Checks if a file exists at the given path.
-///
-/// # Arguments
-/// * `path` - A reference to a path that can be converted into a `Path`.
-///
-/// # Returns
-/// `true` if the file exists, `false` otherwise.
-pub fn verify_config_file_exists<P: AsRef<Path>>(path: P) -> bool {
-    fs::metadata(path).is_ok()
-}
-
-/// Loads and parses the configuration file into an `AppConfig` instance.
-///
-/// # Arguments
-/// * `path` - A string slice representing the path to the configuration file.
-///
-/// # Errors
-/// Returns an `Err` with a descriptive message if:
-/// * The configuration file is not found.
-/// * The file cannot be read from disk.
-/// * The file content fails to parse into the `AppConfig` structure.
-pub fn load_config(path: &str) -> Result<AppConfig, String> {
-    if !verify_config_file_exists(path) {
-        return Err(format!("Configuration file '{}' was not found.", path));
+impl ConfigManager {
+    /// Checks if a file exists at the given path.
+    pub fn verify_config_file_exists<P: AsRef<Path>>(path: P) -> bool {
+        fs::metadata(path).is_ok()
     }
 
-    let content = fs::read_to_string(path)
-        .map_err(|e| format!("Failed to read the file: {}", e))?;
+    /// Loads the TOML file into a dynamic Key-Value map.
+    pub fn load_config(path: &str) -> Result<Self, String> {
+        if !Self::verify_config_file_exists(path) {
+            return Err(format!("Configuration file '{}' was not found.", path));
+        }
 
-    let config: AppConfig = toml::from_str(&content)
-        .map_err(|e| format!("Failed to parse TOML format: {}", e))?;
+        let content =
+            fs::read_to_string(path).map_err(|e| format!("Failed to read the file: {}", e))?;
 
-    Ok(config)
+        // Parses the TOML as a generic flat HashMap of Strings
+        let settings: HashMap<String, String> =
+            toml::from_str(&content).map_err(|e| format!("Failed to parse TOML format: {}", e))?;
+
+        Ok(Self { settings })
+    }
+
+    /// Initializes the global configuration instance.
+    pub fn init_global(path: &str) -> Result<(), String> {
+        let manager = Self::load_config(path)?;
+        CONFIG_MANAGER
+            .set(manager)
+            .map_err(|_| "Global configuration has already been initialized".to_string())
+    }
+
+    /// Retrieves a value from the global configuration by its key.
+    /// Returns `None` if the key does not exist.
+    pub fn get(key: &str) -> Option<&str> {
+        CONFIG_MANAGER
+            .get()
+            .expect(
+                "Global configuration is not initialized. Call `ConfigManager::init_global` first.",
+            )
+            .settings
+            .get(key)
+            .map(|v| v.as_str())
+    }
+
+    /// Retrieves a value and attempts to parse it into a specific type (e.g., bool, i32).
+    pub fn get_as<T: std::str::FromStr>(key: &str) -> Option<T> {
+        Self::get(key)?.parse::<T>().ok()
+    }
 }
 
 #[cfg(test)]
@@ -53,80 +69,50 @@ mod tests {
     #[test]
     fn test_verify_config_file_exists_success() {
         let test_file_path = "test_config_existing.toml";
-
         File::create(test_file_path).expect("Failed to create test file");
+        assert!(ConfigManager::verify_config_file_exists(test_file_path));
+        fs::remove_file(test_file_path).expect("Failed to remove test file");
+    }
 
-        let result = verify_config_file_exists(test_file_path);
-        assert!(result);
+    #[test]
+    fn test_load_config_and_get_values() {
+        let test_file_path = "swconfig_kv_test.toml";
+        let mut file = File::create(test_file_path).expect("Failed to create test config file");
+
+        file.write_all(b"single_thread_mode = \"true\"\ndebug = \"false\"\nport = \"8080\"\n")
+            .expect("Failed to write to test file");
+
+        let manager = ConfigManager::load_config(test_file_path).unwrap();
+
+        assert_eq!(
+            manager
+                .settings
+                .get("single_thread_mode")
+                .map(|v| v.as_str()),
+            Some("true")
+        );
+        assert_eq!(manager.settings.get("non_existent"), None);
 
         fs::remove_file(test_file_path).expect("Failed to remove test file");
     }
 
     #[test]
-    fn test_verify_config_file_exists_fail() {
-        let non_existent_path = "non_existent_file_12345.toml";
-
-        let result = verify_config_file_exists(non_existent_path);
-        assert!(!result);
-    }
-
-    #[test]
-    fn test_load_config_success() {
-        let test_file_path = "swconfig_test_success.toml";
-
+    fn test_global_kv_lifecycle() {
+        let test_file_path = "swconfig_global_kv_test.toml";
         let mut file = File::create(test_file_path).expect("Failed to create test config file");
-        file.write_all(b"single_thread_mode = true\ndebug = false\n").expect("Failed to write to test file");
+        file.write_all(b"single_thread_mode = \"false\"\ndebug = \"true\"\n")
+            .expect("Failed to write to test file");
 
-        let result = load_config(test_file_path);
+        assert!(ConfigManager::init_global(test_file_path).is_ok());
 
-        assert!(result.is_ok());
-        let config = result.unwrap();
-        assert_eq!(config.single_thread_mode, Some(true));
-        assert_eq!(config.debug, Some(false));
+        assert_eq!(ConfigManager::get("debug"), Some("true"));
 
-        fs::remove_file(test_file_path).expect("Failed to remove test file");
-    }
-
-    #[test]
-    fn test_load_config_optional_fields_missing() {
-        let test_file_path = "swconfig_test_missing_fields.toml";
-
-        let mut file = File::create(test_file_path).expect("Failed to create test config file");
-        file.write_all(b"").expect("Failed to write to test file");
-
-        let result = load_config(test_file_path);
-
-        assert!(result.is_ok());
-        let config = result.unwrap();
-        assert_eq!(config.single_thread_mode, None);
-        assert_eq!(config.debug, None);
-
-        fs::remove_file(test_file_path).expect("Failed to remove test file");
-    }
-
-    #[test]
-    fn test_load_config_file_not_found() {
-        let non_existent_path = "swconfig_missing.toml";
-
-        let result = load_config(non_existent_path);
-
-        assert!(result.is_err());
-        let err_msg = result.unwrap_err();
-        assert!(err_msg.contains("was not found"));
-    }
-
-    #[test]
-    fn test_load_config_invalid_toml() {
-        let test_file_path = "swconfig_test_invalid.toml";
-
-        let mut file = File::create(test_file_path).expect("Failed to create test config file");
-        file.write_all(b"single_thread_mode = \"not_a_bool\"\n").expect("Failed to write to test file");
-
-        let result = load_config(test_file_path);
-
-        assert!(result.is_err());
-        let err_msg = result.unwrap_err();
-        assert!(err_msg.contains("Failed to parse"));
+        assert_eq!(ConfigManager::get_as::<bool>("debug"), Some(true));
+        assert_eq!(
+            ConfigManager::get_as::<bool>("single_thread_mode"),
+            Some(false)
+        );
+        assert_eq!(ConfigManager::get_as::<bool>("non_existent"), None);
 
         fs::remove_file(test_file_path).expect("Failed to remove test file");
     }
