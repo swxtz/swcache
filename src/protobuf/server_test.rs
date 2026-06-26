@@ -3,8 +3,8 @@ mod tests {
     use tonic::Request;
 
     use crate::protobuf::server::{
-        ping_proto::{PingRequest, PingResponse},
         ping_proto::ping_server::Ping,
+        ping_proto::PingRequest,
         PingServiceImpl,
     };
 

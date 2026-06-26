@@ -1,10 +1,10 @@
 [package]
 name = "swcache"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 
 description = "a low-cost and high-performance cache server ⚡"
-license = "MIT"
+license = "Apache-2.0"
 
 [dependencies]
 bytesize = "1.3.0"
