@@ -1,11 +1,10 @@
-use tonic::transport::Server;
 use crate::config::config_file::ConfigManager;
+use crate::protobuf::server::ping_service;
 use disclaimer::{beta, logo};
 use runtime::runtime::RuntimeState;
+use tonic::transport::Server;
 use utils::clean_terminal;
-use crate::protobuf::server::ping_service;
 
-mod build;
 mod config;
 mod disclaimer;
 pub mod protobuf;
