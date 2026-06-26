@@ -1,6 +1,10 @@
 # Rust Cache Library
 
-![Rust](https://img.shields.io/badge/rust-1.0+-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Rust](https://img.shields.io/badge/rust-1.0+-blue.svg) [![Crates.io Version](https://img.shields.io/crates/v/swcache?style=flat-square&color=blue)](https://crates.io/crates/swcache)
+[![Crates.io Total Downloads](https://img.shields.io/crates/d/swcache?style=flat-square&color=orange)](https://crates.io/crates/swcache)
+![Crates.io License](https://img.shields.io/crates/l/swcache) ![Crates.io Size](https://img.shields.io/crates/size/swcache)
+
+
 
 ## Overview
 
