@@ -1,23 +1,26 @@
+use crate::config::config_file::ConfigManager;
+use crate::protobuf::server::ping_service;
 use disclaimer::{beta, logo};
 use runtime::runtime::RuntimeState;
+use tonic::transport::Server;
 use utils::clean_terminal;
-use crate::config::config_file::ConfigManager;
 
 mod config;
 mod disclaimer;
+pub mod protobuf;
 mod runtime;
 mod utils;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let runtime = RuntimeState::new();
-
     let state = RuntimeState::state(&runtime);
 
-    startup();
+    startup().await;
     while state {}
 }
 
-fn startup() {
+async fn startup() {
     clean_terminal::clean();
 
     logo::show_logo();
@@ -26,9 +29,31 @@ fn startup() {
     ConfigManager::init_global("swconfig.toml").expect("Error initializing config manager");
 
     let is_single_threaded: bool = ConfigManager::get_as("single_thread_mode").unwrap_or(false);
+    println!("Is single thread mode enabled? {}", is_single_threaded);
 
-   println!("Is single thread mode enabled? {}", is_single_threaded);
+    let server_port: i16 = ConfigManager::get_as("port").unwrap_or(8080);
+    println!("In port {}", server_port);
 
+    tokio::spawn(async move {
+        if let Err(e) = init_grpc_server(server_port).await {
+            eprintln!("Erro ao iniciar servidor gRPC: {}", e);
+        }
+    });
+
+    println!("gRPC server iniciado em background na porta {}", server_port);
+}
+
+async fn init_grpc_server(port: i16) -> Result<(), Box<dyn std::error::Error>> {
+    let addr = format!("[::1]:{}", port).parse()?;
+
+    println!("gRPC server rodando em {}", addr);
+
+    Server::builder()
+        .add_service(ping_service())
+        .serve(addr)
+        .await?;
+
+    Ok(())
 }
 
 /// Verify config file with the default path our custom path, if config file not exists, the program
