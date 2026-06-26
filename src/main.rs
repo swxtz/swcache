@@ -14,7 +14,6 @@ mod utils;
 #[tokio::main]
 async fn main() {
     let runtime = RuntimeState::new();
-
     let state = RuntimeState::state(&runtime);
 
     startup().await;
@@ -35,9 +34,13 @@ async fn startup() {
     let server_port: i16 = ConfigManager::get_as("port").unwrap_or(8080);
     println!("In port {}", server_port);
 
-    if let Err(e) = init_grpc_server(server_port).await {
-        eprintln!("Erro ao iniciar servidor gRPC: {}", e);
-    }
+    tokio::spawn(async move {
+        if let Err(e) = init_grpc_server(server_port).await {
+            eprintln!("Erro ao iniciar servidor gRPC: {}", e);
+        }
+    });
+
+    println!("gRPC server iniciado em background na porta {}", server_port);
 }
 
 async fn init_grpc_server(port: i16) -> Result<(), Box<dyn std::error::Error>> {
