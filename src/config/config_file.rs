@@ -35,11 +35,11 @@ impl ConfigManager {
             return Err(format!("Configuration file '{}' was not found.", path));
         }
 
-        let content = fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read the file: {}", e))?;
+        let content =
+            fs::read_to_string(path).map_err(|e| format!("Failed to read the file: {}", e))?;
 
-        let settings: HashMap<String, toml::Value> = toml::from_str(&content)
-            .map_err(|e| format!("Failed to parse TOML format: {}", e))?;
+        let settings: HashMap<String, toml::Value> =
+            toml::from_str(&content).map_err(|e| format!("Failed to parse TOML format: {}", e))?;
 
         Ok(Self { settings })
     }
@@ -94,8 +94,17 @@ mod tests {
 
         let manager = ConfigManager::load_config(test_file_path).unwrap();
 
-        assert_eq!(manager.settings.get("single_thread_mode").and_then(|v| v.as_bool()), Some(true));
-        assert_eq!(manager.settings.get("port").and_then(|v| v.as_integer()), Some(8080));
+        assert_eq!(
+            manager
+                .settings
+                .get("single_thread_mode")
+                .and_then(|v| v.as_bool()),
+            Some(true)
+        );
+        assert_eq!(
+            manager.settings.get("port").and_then(|v| v.as_integer()),
+            Some(8080)
+        );
         assert_eq!(manager.settings.get("non_existent"), None);
 
         fs::remove_file(test_file_path).expect("Failed to remove test file");
@@ -111,7 +120,10 @@ mod tests {
         assert!(ConfigManager::init_global(test_file_path).is_ok());
 
         assert_eq!(ConfigManager::get_as::<bool>("debug"), Some(true));
-        assert_eq!(ConfigManager::get_as::<bool>("single_thread_mode"), Some(false));
+        assert_eq!(
+            ConfigManager::get_as::<bool>("single_thread_mode"),
+            Some(false)
+        );
         assert_eq!(ConfigManager::get_as::<bool>("non_existent"), None);
 
         fs::remove_file(test_file_path).expect("Failed to remove test file");

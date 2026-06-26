@@ -1,7 +1,7 @@
+use crate::config::config_file::ConfigManager;
 use disclaimer::{beta, logo};
 use runtime::runtime::RuntimeState;
 use utils::clean_terminal;
-use crate::config::config_file::ConfigManager;
 
 mod config;
 mod disclaimer;
@@ -27,8 +27,7 @@ fn startup() {
 
     let is_single_threaded: bool = ConfigManager::get_as("single_thread_mode").unwrap_or(false);
 
-   println!("Is single thread mode enabled? {}", is_single_threaded);
-
+    println!("Is single thread mode enabled? {}", is_single_threaded);
 }
 
 /// Verify config file with the default path our custom path, if config file not exists, the program

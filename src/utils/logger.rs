@@ -1,1 +1,1 @@
-pub fn info_as_string(content: String) {} 
+pub fn info_as_string(content: String) {}

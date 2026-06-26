@@ -10,3 +10,5 @@ owo-colors = "4.1.0"
 sysinfo = { version = "0.32.0", features = ["windows"] }
 toml = "0.8.19"
 serde = { version = "1.0.210", features = ["derive"] }
+prost = "0.14.4"
+tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }
